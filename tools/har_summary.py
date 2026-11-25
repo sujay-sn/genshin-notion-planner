@@ -29,12 +29,23 @@ MAX_STR = 60
 
 ID_KEY = re.compile(r"(^|_)(uid|ltuid|ltmid|role_id|account_id|aid|mid)(_v2)?$")
 SECRET_PARTS = (
-    "token", "cookie", "authkey", "ticket", "session",
-    "nickname", "email", "phone", "device",
+    "token",
+    "cookie",
+    "authkey",
+    "ticket",
+    "session",
+    "nickname",
+    "email",
+    "phone",
+    "device",
 )
 LONG_DIGITS = re.compile(r"\d{7,}")
 SECRET_HEADERS = {
-    "authorization", "ds", "x-rpc-device_id", "x-rpc-device_fp", "x-rpc-device_name",
+    "authorization",
+    "ds",
+    "x-rpc-device_id",
+    "x-rpc-device_fp",
+    "x-rpc-device_name",
 }
 
 
@@ -158,9 +169,7 @@ def is_api_call(entry: dict[str, Any], hints: tuple[str, ...]) -> bool:
     return "json" in mime
 
 
-def collect(
-    entries: list[dict[str, Any]], hints: tuple[str, ...]
-) -> tuple[list[Endpoint], int]:
+def collect(entries: list[dict[str, Any]], hints: tuple[str, ...]) -> tuple[list[Endpoint], int]:
     endpoints: dict[tuple[str, str, str], Endpoint] = {}
     total = 0
     for entry in entries:
@@ -226,7 +235,9 @@ def main() -> int:
     parser.add_argument("har", type=Path, help="HAR file exported from browser DevTools")
     parser.add_argument("--out", type=Path, help="write the summary here instead of stdout")
     parser.add_argument(
-        "--host", action="append", dest="hosts",
+        "--host",
+        action="append",
+        dest="hosts",
         help="host substring to keep (repeatable, default: hoyolab/hoyoverse/mihoyo)",
     )
     args = parser.parse_args()
