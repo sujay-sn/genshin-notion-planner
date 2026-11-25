@@ -12,6 +12,7 @@ Keeps a Notion planner in sync with a Genshin Impact account: who you're buildin
 | [docs/endpoints.md](docs/endpoints.md) | Interactive map endpoints, captured and scrubbed |
 | [tools/har_summary.py](tools/har_summary.py) | Turns a browser HAR export into a scrubbed endpoint summary |
 | `.env.example` | Every config key the planner will need, with secrets left blank |
+| [CLAUDE.md](CLAUDE.md) | Project rules for Claude Code: secrets, time handling, tests, git |
 
 ## Capturing endpoints
 

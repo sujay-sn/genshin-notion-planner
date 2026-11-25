@@ -327,6 +327,8 @@ The daily page should get written even when parts of a run fail, with a warning 
 
 The run starts on a local scheduler (Windows Task Scheduler or cron). Once it's reliable, GitHub Actions is worth trying (`cron: "5 20 * * *"`, secrets stored as repo secrets). The open question is whether HoYoLAB challenges requests from GitHub's IPs. If it does, the run stays local.
 
+Windows Task Scheduler triggers on local time, not UTC. A fixed 3:05 PM trigger would fire an hour before the reset all through daylight saving time. Set the local trigger to 4:10 PM instead, which is after the reset under both EST and EDT. Runs are idempotent, so the extra delay in winter costs nothing.
+
 ## 14. Key decisions
 
 | Decision | Chosen | Alternative | Why |
