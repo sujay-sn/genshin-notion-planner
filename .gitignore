@@ -1,0 +1,34 @@
+# Secrets: HoYoLAB cookies, Notion token
+.env
+.env.*
+!.env.example
+
+# Raw network captures (can contain tokens and device IDs)
+*.har
+
+# Local caches and scratch output
+.cache/
+out/
+tests/fixtures/raw/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
