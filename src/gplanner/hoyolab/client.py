@@ -46,7 +46,15 @@ _CALCULATOR_SYNC_OFF = -502002
 
 
 class HoyolabError(Exception):
-    """A HoYoLAB step failed. The message is safe to print: it never holds secrets."""
+    """A HoYoLAB step failed. The message is safe to print: it never holds secrets.
+
+    ``retcode`` is HoYoLAB's error code when the API returned one, so callers
+    can branch on it instead of parsing the message.
+    """
+
+    def __init__(self, message: str, *, retcode: int | None = None) -> None:
+        super().__init__(message)
+        self.retcode = retcode
 
 
 class HoyolabAuthError(HoyolabError):
@@ -142,7 +150,8 @@ class HoyolabClient:
             except genshin.errors.InvalidCookies as exc:
                 raise HoyolabAuthError(
                     f"{step}: HoYoLAB rejected the cookies ({exc}). "
-                    "Refresh HOYOLAB_LTUID_V2, HOYOLAB_LTOKEN_V2 and HOYOLAB_LTMID_V2 in .env."
+                    "Refresh HOYOLAB_LTUID_V2, HOYOLAB_LTOKEN_V2 and HOYOLAB_LTMID_V2 in .env.",
+                    retcode=exc.retcode or None,
                 ) from None
             except _RETRYABLE as exc:
                 if attempt >= self._retries:
@@ -155,9 +164,10 @@ class HoyolabClient:
                 if _is_captcha(exc):
                     raise HoyolabCaptchaError(
                         f"{step}: HoYoLAB asked for a captcha ({exc}). "
-                        "This usually means the request came from a cloud IP. Run it locally."
+                        "This usually means the request came from a cloud IP. Run it locally.",
+                        retcode=exc.retcode or None,
                     ) from None
-                raise HoyolabError(f"{step}: {exc}") from None
+                raise HoyolabError(f"{step}: {exc}", retcode=exc.retcode or None) from None
             except pydantic.ValidationError as exc:
                 raise HoyolabError(
                     f"{step}: the response no longer matches genshin.py's model, "
@@ -190,28 +200,41 @@ class HoyolabClient:
         try:
             details = await self._call("Calculator character details", request)
         except HoyolabError as exc:
-            if f"[{_CALCULATOR_SYNC_OFF}]" in str(exc):
+            if exc.retcode == _CALCULATOR_SYNC_OFF:
                 raise HoyolabError(
                     "Calculator sync is off. Turn it on in HoYoLAB's Enhancement "
-                    "Progression Calculator, then run again."
+                    "Progression Calculator, then run again.",
+                    retcode=exc.retcode,
                 ) from None
             raise
-        normal, skill, burst = details.upgradeable_talents
-        return Talents(normal=normal.level, skill=skill.level, burst=burst.level)
+        # Not genshin.py's upgradeable_talents: it always returns three and only
+        # looks for the sprint at index 2.
+        active = [t.level for t in details.talents if t.type != "passive"]
+        talents = _talents_from_levels(active)
+        if talents is None:
+            raise HoyolabError(
+                f"Calculator character details: expected 3 or 4 non-passive talents, "
+                f"got {len(active)}"
+            )
+        return talents
+
+
+def _talents_from_levels(levels: Sequence[int]) -> Talents | None:
+    """Normal attack, skill and burst from the levels of a character's active talents.
+
+    Most characters have three. A few (alternate sprint, like Kamisato Ayaka or
+    Mona) have a fourth that sits before the burst, so the burst is always the
+    last one. The live test prints the four-talent characters so this ordering
+    can be confirmed. Any other count returns None.
+    """
+    if len(levels) not in (3, 4):
+        return None
+    return Talents(normal=levels[0], skill=levels[1], burst=levels[-1])
 
 
 def _pick_talents(skills: Sequence[Any]) -> Talents | None:
-    """Normal attack, skill and burst levels from the character detail skills.
-
-    Levelable talents have skill_type 1. Most characters have three. A few
-    (alternate sprint, like Kamisato Ayaka or Mona) have a fourth that sits
-    before the burst, so the burst is always the last one. The live test prints
-    the four-talent characters so this ordering can be confirmed.
-    """
-    active = [s for s in skills if s.skill_type == _ACTIVE_SKILL_TYPE]
-    if len(active) not in (3, 4):
-        return None
-    return Talents(normal=active[0].level, skill=active[1].level, burst=active[-1].level)
+    """Talents from the character detail skills, where levelable ones have skill_type 1."""
+    return _talents_from_levels([s.level for s in skills if s.skill_type == _ACTIVE_SKILL_TYPE])
 
 
 def normalize_character(

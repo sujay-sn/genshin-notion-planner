@@ -33,22 +33,21 @@ def detail_characters() -> genshin.models.GenshinDetailCharacters:
     return genshin.models.GenshinDetailCharacters(**raw)
 
 
-def calculator_details(with_dash: bool) -> genshin.models.CalculatorCharacterDetails:
-    def talent(tid: int, group_id: int, level: int) -> dict[str, Any]:
-        return {
-            "id": tid,
-            "group_id": group_id,
-            "name": f"Talent {group_id}",
-            "icon": "https://example.invalid/t.png",
-            "level_current": level,
-            "max_level": 10,
-        }
+# Calculator talents as (id, group_id, level). genshin.py reads the type from
+# group_id: a middle digit of 2 is a passive, otherwise the last digit is
+# 1 attack, 2 skill, 3 sprint, 9 burst.
+ATTACK, SKILL, SPRINT, BURST = (
+    (10001, 4131, 6),
+    (10002, 4132, 8),
+    (10003, 4133, 1),
+    (10004, 4139, 10),
+)
+PASSIVES = [(10005, 4121, 1), (10006, 4122, 1)]
 
-    # The last digit of group_id encodes the type: 1 attack, 2 skill, 3 sprint, 9 burst.
-    skills = [talent(10001, 4131, 6), talent(10002, 4132, 8)]
-    if with_dash:
-        skills.append(talent(10003, 4133, 1))
-    skills.append(talent(10004, 4139, 10))
+
+def calculator_details(
+    talents: list[tuple[int, int, int]],
+) -> genshin.models.CalculatorCharacterDetails:
     return genshin.models.CalculatorCharacterDetails(
         weapon={
             "id": 1,
@@ -59,7 +58,17 @@ def calculator_details(with_dash: bool) -> genshin.models.CalculatorCharacterDet
             "level_current": 90,
             "max_level": 90,
         },
-        skill_list=skills,
+        skill_list=[
+            {
+                "id": tid,
+                "group_id": group_id,
+                "name": f"Talent {group_id}",
+                "icon": "https://example.invalid/t.png",
+                "level_current": level,
+                "max_level": 10,
+            }
+            for tid, group_id, level in talents
+        ],
         reliquary_list=[],
     )
 
@@ -208,18 +217,48 @@ def test_changed_response_shape_becomes_hoyolab_error() -> None:
 # Calculator base talents
 
 
-@pytest.mark.parametrize("with_dash", [False, True])
-def test_fetch_base_talents(with_dash: bool) -> None:
-    api = FakeApi(calculator_details(with_dash))
-    talents = run(make_client(api).fetch_base_talents(90000001))
-    assert talents == Talents(normal=6, skill=8, burst=10)
+@pytest.mark.parametrize(
+    "talents",
+    [
+        pytest.param([ATTACK, SKILL, BURST, *PASSIVES], id="three"),
+        pytest.param([ATTACK, SKILL, SPRINT, BURST, *PASSIVES], id="four-with-sprint"),
+    ],
+)
+def test_fetch_base_talents(talents: list[tuple[int, int, int]]) -> None:
+    api = FakeApi(calculator_details(talents))
+    result = run(make_client(api).fetch_base_talents(90000001))
+    assert result == Talents(normal=6, skill=8, burst=10)
     assert api.calls == [("calculator", 90000001)]
+
+
+def test_fetch_base_talents_rejects_unexpected_count() -> None:
+    # genshin.py's upgradeable_talents would quietly return a passive as the burst here.
+    api = FakeApi(calculator_details([ATTACK, SKILL, *PASSIVES]))
+    with pytest.raises(HoyolabError, match="expected 3 or 4 non-passive talents, got 2"):
+        run(make_client(api).fetch_base_talents(90000001))
 
 
 def test_fetch_base_talents_explains_sync_off() -> None:
     api = FakeApi(genshin.errors.GenshinException({"retcode": -502002, "message": "sync off"}))
-    with pytest.raises(HoyolabError, match="Calculator sync is off"):
+    with pytest.raises(HoyolabError, match="Calculator sync is off") as info:
         run(make_client(api).fetch_base_talents(90000001))
+    assert info.value.retcode == -502002
+
+
+def test_sync_off_is_detected_by_retcode_not_message() -> None:
+    lookalike = genshin.errors.GenshinException({"retcode": -1, "message": "see [-502002]"})
+    api = FakeApi(lookalike)
+    with pytest.raises(HoyolabError) as info:
+        run(make_client(api).fetch_base_talents(90000001))
+    assert "Calculator sync is off" not in str(info.value)
+    assert info.value.retcode == -1
+
+
+def test_auth_error_keeps_retcode() -> None:
+    api = FakeApi(genshin.errors.InvalidCookies({"retcode": 10001, "message": "Please login"}))
+    with pytest.raises(HoyolabAuthError) as info:
+        run(make_client(api).fetch_roster())
+    assert info.value.retcode == 10001
 
 
 # Construction from settings
