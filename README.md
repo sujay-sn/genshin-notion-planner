@@ -2,7 +2,18 @@
 
 Keeps a Notion planner in sync with a Genshin Impact account: who you're building, what materials they still need, and what to farm today on the Asia server. Each daily page has the official Teyvat Interactive Map embedded, so where to go is one tap away.
 
-**Status:** design. No code yet. Start with [docs/DESIGN.md](docs/DESIGN.md).
+**Status:** M0 (package skeleton, config, server clock). Start with [docs/DESIGN.md](docs/DESIGN.md).
+
+## Development
+
+```
+python -m venv .venv
+pip install -e ".[dev]"
+pytest
+ruff check . && ruff format --check .
+```
+
+Tests never touch the network. Tests that call real APIs are marked `@pytest.mark.live` and only run with `pytest -m live`.
 
 ## What's here
 

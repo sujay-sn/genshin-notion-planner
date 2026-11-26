@@ -215,7 +215,7 @@ Rules:
 
 Two consequences to keep in mind. After 3 PM Boston time, the server is already on tomorrow, so at 5 PM on a Wednesday the Monday/Thursday books are the ones up. And Sunday's open-everything day runs from Saturday 3 PM to Sunday 3 PM on your clock.
 
-`clock.py` exposes `server_day()`, `next_reset_local()`, `is_server_monday()` and `to_local(dt)`.
+`clock.py` exposes a `Clock`, built once from config, with `server_day()`, `next_reset_local()`, `is_server_monday()` and `to_local(dt)` (plus `next_reset_utc()`, which the others use). Each method takes an optional timezone-aware `now`, so tests pin the instant without a time-freezing library. Naive datetimes are rejected.
 
 ## 8. Flows
 
