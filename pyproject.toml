@@ -9,10 +9,16 @@ description = "Keeps a Notion planner in sync with a Genshin Impact account."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    # Exact pin: genshin.py tracks unofficial APIs and releases monthly. Bump it on
+    # purpose and re-check the methods hoyolab/client.py uses.
+    "genshin==1.7.32",
     "python-dotenv>=1.0",
     # Windows has no system time zone database, so zoneinfo needs this.
     "tzdata>=2024.1",
 ]
+
+[project.scripts]
+gplanner = "gplanner.cli:main"
 
 [project.optional-dependencies]
 dev = [
