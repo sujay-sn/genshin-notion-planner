@@ -92,8 +92,9 @@ Some genshin.py calls change account settings by default, and the client avoids 
 
 What HoYoLAB doesn't give directly:
 
-- **Character ascension.** Only weapon ascension is reported. The client works out the lowest ascension consistent with the level. At a level cap (20, 40, 50, 60, 70, 80) the character may already have ascended, so the value is flagged as ambiguous and shown with a `?`.
-- **Which talent is which.** Talents you can level have `skill_type` 1. Characters with an alternate sprint have four of them, so the client reads normal, skill, and the last one as burst.
+- **Character ascension.** Only weapon ascension is reported, and the raw data has no hidden field (question 8). The client works out the lowest ascension consistent with the level. At a level cap (20, 40, 50, 60, 70, 80) the character may already have ascended, so the value is flagged as ambiguous. Your "Ascended at cap" checkbox settles it (section 6.1).
+- **Which talent is which.** Talents you can level have `skill_type` 1. Characters with an alternate sprint have four of them, with the sprint third, so the client reads the first as normal, the second as skill and the last as burst.
+- **Base talent levels.** Character detail levels include constellation bonuses (question 8), but targets and the calculator work on base levels. The client takes the bonuses off itself rather than making one calculator request per character. For each unlocked C3 and C5, it finds the talent whose name appears in the constellation's effect text and subtracts 3. If an unlocked C3 or C5 names no talent, or more than one, that character's talents are left out of the sync with a warning. The M2 live test checks this method against the calculator (question 9).
 
 ### 4.2 Interactive map APIs
 
@@ -144,12 +145,17 @@ Each material the calculator returns gets a type, a source, farm days and a resi
 | HoYo ID | number | script (upsert key) |
 | Element, Weapon type, Rarity | select | script |
 | Level, Ascension, Constellation | number | script |
-| Normal / Skill / Burst | number | script |
+| Normal / Skill / Burst | number, base level without constellation bonuses | script |
 | Weapon | text | script |
 | Last synced | date | script |
 | Building | checkbox | you |
+| Ascended at cap | checkbox | you |
 | Priority | number (1 = first) | you |
 | Target level, Target Normal / Skill / Burst | number | you |
+
+Talent levels are base levels: what the talent books raise, what targets mean, and what the calculator expects. A C5 character showing 13 in game has 10 here. Section 4.1 explains how they're worked out.
+
+Ascension is the lowest value consistent with the level, since HoYoLAB doesn't report it. Tick **Ascended at cap** when a character sits at a cap level (20, 40, 50, 60, 70 or 80) and has already ascended. The planner then counts one more ascension. Away from a cap the level settles ascension, and the box is ignored. The script can't untick the box, because you own it. If it's still ticked once the character has left the cap, sync-roster warns you to untick it, so it doesn't count at the next cap.
 
 **Materials:** one row per material used by any character you're building.
 
@@ -365,10 +371,11 @@ Windows Task Scheduler triggers on local time, not UTC. A fixed 3:05 PM trigger 
 5. **Route links in English.** The route share links come with `lang=zh-cn`. Confirm that swapping in `lang=en-us` works.
 6. **Cookies for map endpoints.** The capture was sanitized, so we don't yet know which cookies the personal map endpoint needs. Probably the same v2 cookies.
 7. ~~**genshin.py method names** for detailed talents and the calculator.~~ Resolved in M1. See section 4.1.
-8. **Talent details the M1 live test should settle** (`pytest -m live -s tests/test_live_hoyolab.py`):
-   - Does the raw character data have an ascension field that genshin.py drops?
-   - Is the alternate sprint always the third of four `skill_type` 1 talents?
-   - Do character detail talent levels include constellation bonuses? The calculator needs base levels.
+8. ~~**Talent details from the M1 live test.**~~ Resolved by the live run on 25 Nov 2026 (66 characters returned):
+   - **Ascension: no field.** The raw `base` keys are `actived_constellation_num, element, fetter, icon, id, image, is_chosen, level, name, rarity, side_icon, weapon, weapon_type`. None holds ascension. Characters at a level cap get the "Ascended at cap" checkbox (section 6.1).
+   - **Sprint order: confirmed for Mona.** Her four `skill_type` 1 talents come back as normal, skill, Illusory Torrent (the sprint), burst, so reading the burst as the last one is right. Ayaka isn't on the account, so she hasn't been checked. `skill_type` 3 also appears, meaning unknown. The client ignores it.
+   - **Constellation bonuses: included.** Collei at C6 shows 1/8/9 in character detail and 1/5/6 in the calculator, so detail levels include the +3s. The roster agrees: Keqing at C3 is 1/1/4, and Xingqiu at C5 is 1/11/11. Notion stores base levels (section 6.1).
+9. **Is the constellation effect text reliable enough to take bonuses off?** Section 4.1 relies on each C3 and C5 effect naming the talent it raises. The M2 live test checks this against the calculator for every C3+ character.
 
 ## 16. Build plan
 
