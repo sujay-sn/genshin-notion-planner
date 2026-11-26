@@ -77,7 +77,23 @@ Only `hoyolab/` imports genshin.py or calls HoYoLAB. Only `notion/` calls Notion
 | Real-Time Notes | Resin, commissions, expeditions, weekly boss discounts | Cookies, Real-Time Notes enabled on HoYoLAB |
 | Enhancement Progression Calculator | Material costs from current to target levels | Cookies |
 
-genshin.py works out the Asia server from the UID. Exact method names get confirmed against the current genshin.py docs when we write the client, since the library releases monthly.
+genshin.py works out the Asia server from the UID. It's pinned to an exact version in `pyproject.toml`, since it releases monthly. Bump it on purpose and re-check the methods below against the new source.
+
+Methods, confirmed against genshin.py 1.7.32:
+
+| Data | Method | Requests |
+|---|---|---|
+| Roster with talents and weapon | `get_genshin_detailed_characters(uid)` | 2 for the whole roster (`character/list`, then `character/detail` for every ID) |
+| Real-Time Notes | `get_genshin_notes(uid, autoauth=False)` | 1 |
+| Calculator cost | `calculator().set_character(...).with_current_talents(...).calculate()` | 1, plus 1 for current talents |
+| Base talent levels | `get_character_details(id)` (calculator `sync/avatar/detail`) | 1 per character, needs calculator sync on |
+
+Some genshin.py calls change account settings by default, and the client avoids them. `get_genshin_notes` turns Real-Time Notes on unless it gets `autoauth=False`. `get_calculator_characters(sync=True)` turns calculator sync on with no way to opt out, so it isn't used. On the first request in each process genshin.py also downloads character names from public sources (gi.yatta.moe, Enka and Dimbreath on GitHub). No account data goes with that request.
+
+What HoYoLAB doesn't give directly:
+
+- **Character ascension.** Only weapon ascension is reported. The client works out the lowest ascension consistent with the level. At a level cap (20, 40, 50, 60, 70, 80) the character may already have ascended, so the value is flagged as ambiguous and shown with a `?`.
+- **Which talent is which.** Talents you can level have `skill_type` 1. Characters with an alternate sprint have four of them, so the client reads normal, skill, and the last one as burst.
 
 ### 4.2 Interactive map APIs
 
@@ -307,7 +323,7 @@ The daily page should get written even when parts of a run fail, with a warning 
 |---|---|
 | HoYoLAB cookies expired | Roster and needs skip. The daily page is still built from existing Notion data, with a "refresh your cookies" warning. Exit code is non-zero. |
 | HoYoLAB transient error or rate limit | Up to 3 retries with backoff, then treated as a failure for that step. |
-| HoYoLAB captcha challenge | Stop that step and say so. This most likely means the run came from a cloud IP. |
+| HoYoLAB captcha challenge (genshin.py's `GEETEST_RETCODES`) | Stop that step and say so. This most likely means the run came from a cloud IP. |
 | Map static calls fail | Use the newest cached version. With no cache, farm list items have no map links. |
 | Map data shape changed | Same as above, and the error is logged with the endpoint name. |
 | Notion 429 | Wait for the time Notion's Retry-After header says, then retry. |
@@ -348,7 +364,11 @@ Windows Task Scheduler triggers on local time, not UTC. A fixed 3:05 PM trigger 
 4. **Respawn hours.** The map's default timer for local specialties is 72 hours. The config default is 48. Check this in the game and pick one.
 5. **Route links in English.** The route share links come with `lang=zh-cn`. Confirm that swapping in `lang=en-us` works.
 6. **Cookies for map endpoints.** The capture was sanitized, so we don't yet know which cookies the personal map endpoint needs. Probably the same v2 cookies.
-7. **genshin.py method names** for detailed talents and the calculator, confirmed against current docs.
+7. ~~**genshin.py method names** for detailed talents and the calculator.~~ Resolved in M1. See section 4.1.
+8. **Talent details the M1 live test should settle** (`pytest -m live -s tests/test_live_hoyolab.py`):
+   - Does the raw character data have an ascension field that genshin.py drops?
+   - Is the alternate sprint always the third of four `skill_type` 1 talents?
+   - Do character detail talent levels include constellation bonuses? The calculator needs base levels.
 
 ## 16. Build plan
 
