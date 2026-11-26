@@ -1,0 +1,268 @@
+{
+  "list": [
+    {
+      "base": {
+        "id": 90000001,
+        "icon": "https://example.invalid/avatar.png",
+        "name": "Fixture Three Talents",
+        "element": "Pyro",
+        "fetter": 10,
+        "level": 90,
+        "rarity": 5,
+        "actived_constellation_num": 0,
+        "image": "https://example.invalid/image.png",
+        "is_chosen": false,
+        "side_icon": "https://example.invalid/side.png",
+        "weapon_type": 1,
+        "weapon": {}
+      },
+      "weapon": {
+        "id": 91000001,
+        "icon": "https://example.invalid/weapon.png",
+        "name": "Fixture Sword",
+        "rarity": 5,
+        "level": 90,
+        "type": 1,
+        "affix_level": 1,
+        "promote_level": 6,
+        "desc": "",
+        "main_property": {
+          "property_type": 2001,
+          "base": "608",
+          "add": "",
+          "final": "608"
+        },
+        "sub_property": null
+      },
+      "relics": [],
+      "constellations": [],
+      "costumes": [],
+      "selected_properties": [],
+      "base_properties": [],
+      "extra_properties": [],
+      "element_properties": [],
+      "skills": [
+        {
+          "skill_id": 1,
+          "skill_type": 1,
+          "name": "Normal Attack",
+          "level": 9,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 2,
+          "skill_type": 1,
+          "name": "Elemental Skill",
+          "level": 9,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 3,
+          "skill_type": 1,
+          "name": "Elemental Burst",
+          "level": 9,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 4,
+          "skill_type": 2,
+          "name": "Passive One",
+          "level": 1,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 5,
+          "skill_type": 2,
+          "name": "Passive Two",
+          "level": 1,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        }
+      ]
+    },
+    {
+      "base": {
+        "id": 90000002,
+        "icon": "https://example.invalid/avatar.png",
+        "name": "Fixture Sprint Talent",
+        "element": "Cryo",
+        "fetter": 10,
+        "level": 80,
+        "rarity": 4,
+        "actived_constellation_num": 6,
+        "image": "https://example.invalid/image.png",
+        "is_chosen": false,
+        "side_icon": "https://example.invalid/side.png",
+        "weapon_type": 10,
+        "weapon": {}
+      },
+      "weapon": {
+        "id": 91000002,
+        "icon": "https://example.invalid/weapon.png",
+        "name": "Fixture Catalyst",
+        "rarity": 4,
+        "level": 70,
+        "type": 1,
+        "affix_level": 5,
+        "promote_level": 4,
+        "desc": "",
+        "main_property": {
+          "property_type": 2001,
+          "base": "608",
+          "add": "",
+          "final": "608"
+        },
+        "sub_property": null
+      },
+      "relics": [],
+      "constellations": [],
+      "costumes": [],
+      "selected_properties": [],
+      "base_properties": [],
+      "extra_properties": [],
+      "element_properties": [],
+      "skills": [
+        {
+          "skill_id": 11,
+          "skill_type": 1,
+          "name": "Normal Attack",
+          "level": 6,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 12,
+          "skill_type": 1,
+          "name": "Elemental Skill",
+          "level": 8,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 13,
+          "skill_type": 1,
+          "name": "Alternate Sprint",
+          "level": 1,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 14,
+          "skill_type": 1,
+          "name": "Elemental Burst",
+          "level": 10,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 15,
+          "skill_type": 2,
+          "name": "Passive One",
+          "level": 1,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        }
+      ]
+    },
+    {
+      "base": {
+        "id": 90000003,
+        "icon": "https://example.invalid/avatar.png",
+        "name": "Fixture Odd Talents",
+        "element": "Anemo",
+        "fetter": 10,
+        "level": 45,
+        "rarity": 4,
+        "actived_constellation_num": 2,
+        "image": "https://example.invalid/image.png",
+        "is_chosen": false,
+        "side_icon": "https://example.invalid/side.png",
+        "weapon_type": 12,
+        "weapon": {}
+      },
+      "weapon": {
+        "id": 91000003,
+        "icon": "https://example.invalid/weapon.png",
+        "name": "Fixture Bow",
+        "rarity": 3,
+        "level": 1,
+        "type": 1,
+        "affix_level": 1,
+        "promote_level": 0,
+        "desc": "",
+        "main_property": {
+          "property_type": 2001,
+          "base": "608",
+          "add": "",
+          "final": "608"
+        },
+        "sub_property": null
+      },
+      "relics": [],
+      "constellations": [],
+      "costumes": [],
+      "selected_properties": [],
+      "base_properties": [],
+      "extra_properties": [],
+      "element_properties": [],
+      "skills": [
+        {
+          "skill_id": 21,
+          "skill_type": 1,
+          "name": "Normal Attack",
+          "level": 1,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 22,
+          "skill_type": 1,
+          "name": "Elemental Skill",
+          "level": 1,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        }
+      ]
+    }
+  ],
+  "property_map": {
+    "2001": {
+      "property_type": 2001,
+      "name": "Base ATK",
+      "icon": "",
+      "filter_name": "Base ATK"
+    }
+  },
+  "relic_property_options": {},
+  "relic_wiki": {},
+  "weapon_wiki": {},
+  "avatar_wiki": {}
+}
