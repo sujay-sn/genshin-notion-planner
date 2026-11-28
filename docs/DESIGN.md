@@ -86,7 +86,7 @@ Methods, confirmed against genshin.py 1.7.32:
 | Roster with talents and weapon | `get_genshin_detailed_characters(uid)` | 2 for the whole roster (`character/list`, then `character/detail` for every ID) |
 | Real-Time Notes | `get_genshin_notes(uid, autoauth=False)` | 1 |
 | Calculator cost | `calculator().set_character(...).with_current_talents(...).calculate()` | 1, plus 1 for current talents |
-| Base talent levels | `get_character_details(id)` (calculator `sync/avatar/detail`) | 1 per character, needs calculator sync on |
+| Base talent levels, fallback only | `get_character_details(id)` (calculator `sync/avatar/detail`) | 1 per character that needs it, needs calculator sync on |
 
 Some genshin.py calls change account settings by default, and the client avoids them. `get_genshin_notes` turns Real-Time Notes on unless it gets `autoauth=False`. `get_calculator_characters(sync=True)` turns calculator sync on with no way to opt out, so it isn't used. On the first request in each process genshin.py also downloads character names from public sources (gi.yatta.moe, Enka and Dimbreath on GitHub). No account data goes with that request.
 
@@ -94,7 +94,7 @@ What HoYoLAB doesn't give directly:
 
 - **Character ascension.** Only weapon ascension is reported, and the raw data has no hidden field (question 8). The client works out the lowest ascension consistent with the level. At a level cap (20, 40, 50, 60, 70, 80) the character may already have ascended, so the value is flagged as ambiguous. Your "Ascended at cap" checkbox settles it (section 6.1).
 - **Which talent is which.** Talents you can level have `skill_type` 1. Characters with an alternate sprint have four of them, with the sprint third, so the client reads the first as normal, the second as skill and the last as burst.
-- **Base talent levels.** Character detail levels include constellation bonuses (question 8), but targets and the calculator work on base levels. The client takes the bonuses off itself rather than making one calculator request per character. For each unlocked C3 and C5, it finds the talent whose name appears in the constellation's effect text and subtracts 3. If an unlocked C3 or C5 names no talent, or more than one, that character's talents are left out of the sync with a warning. The M2 live test checks this method against the calculator (question 9).
+- **Base talent levels.** Character detail levels include constellation bonuses (question 8), but targets and the calculator work on base levels. The client takes the bonuses off itself rather than making one calculator request per character. For each unlocked C3 and C5, it finds the talent whose name appears in the constellation's effect text and subtracts 3. When a longer talent name contains a shorter one, only the longer counts as named. A character goes to the calculator instead, one request, in these cases: an unlocked C3 or C5 names no talent or more than one; the constellation data disagrees with the constellation count; a level would drop below 1; or the character doesn't have 3 or 4 levelable talents. The dry run notes each one. Talents are left out of the sync, with a warning, only when the calculator fails too, for example because calculator sync is off. The live test checks the effect-text method against the calculator (question 9).
 
 ### 4.2 Interactive map APIs
 
@@ -135,7 +135,7 @@ Each material the calculator returns gets a type, a source, farm days and a resi
 
 ### 6.1 Databases
 
-`init-notion` creates all four databases once and writes their IDs to `.env`. `init-notion --check` later confirms nothing has been renamed or deleted.
+`init-notion` creates all four databases under `NOTION_PARENT_PAGE_ID` and writes each data source ID to `.env` as soon as that database exists. It's safe to run again: databases whose ID is set are skipped, and the Materials finishing steps (naming the Needs relation, then the rollup and formulas) only add what's missing. `init-notion --dry-run` prints what it would create. `init-notion --check` confirms every property is still there with the right type, and names any that isn't. sync-roster runs the same check on Characters first, and stops if anything is wrong.
 
 **Characters:** one row per owned character.
 
@@ -147,7 +147,7 @@ Each material the calculator returns gets a type, a source, farm days and a resi
 | Level, Ascension, Constellation | number | script |
 | Normal / Skill / Burst | number, base level without constellation bonuses | script |
 | Weapon | text | script |
-| Last synced | date | script |
+| Last synced | date: when the script last changed this row's script-owned properties | script |
 | Building | checkbox | you |
 | Ascended at cap | checkbox | you |
 | Priority | number (1 = first) | you |
@@ -170,6 +170,7 @@ Ascension is the lowest value consistent with the level, since HoYoLAB doesn't r
 | Resin cost | number | script |
 | Spawn points | number | script |
 | Map link | URL (harvest route if one exists) | script |
+| Needs | relation, the reverse side of Needs.Material | Notion |
 | Needed | rollup, sum of Needs quantity | formula |
 | Owned | number | you |
 | Short by | formula, max(Needed minus Owned, 0) | formula |
@@ -245,7 +246,7 @@ All commands share one rule: read first, compute in `planner/`, then write. A cr
 
 **`refresh-map`** (inside every `run`): fetch `map/info`. If `map_version` changed, fetch the label tree, `game_item` and area labels into a new cache folder. Otherwise keep the existing cache.
 
-**`sync-roster`:** fetch characters, normalize them into models, and upsert into Characters by HoYo ID. Only script-owned properties are written.
+**`sync-roster`:** check the Characters schema, fetch characters, normalize them into models, and upsert into Characters by HoYo ID. Only script-owned properties are compared and written. A page is written only when one of them changed, and only the changed ones plus Last synced are sent, so a second run makes zero writes. Unknown talents are never written as blanks. Writes are paced at one every 0.35 seconds. Duplicate HoYo IDs, pages for characters not on the account, and an "Ascended at cap" box left ticked away from a cap each get a warning, and those pages are left alone.
 
 **`sync-needs`:** read Characters where Building is checked, along with your targets. For each character whose levels or targets changed, ask the calculator for the cost. Classify each material (section 5), upsert it into Materials, and replace that character's Needs rows.
 
@@ -268,6 +269,8 @@ genshin-notion-planner/
 │   │   ├── client.py
 │   │   └── map.py
 │   ├── notion/
+│   │   ├── client.py
+│   │   ├── props.py
 │   │   ├── schema.py
 │   │   └── repo.py
 │   └── planner/
@@ -287,7 +290,8 @@ genshin-notion-planner/
 │   ├── test_clock.py
 │   ├── test_classify.py
 │   ├── test_needs.py
-│   └── test_daily.py
+│   ├── test_daily.py
+│   └── fake_notion.py
 ├── .github/workflows/
 │   ├── ci.yml
 │   └── daily.yml
@@ -307,15 +311,18 @@ HOYOLAB_LTOKEN_V2=
 HOYOLAB_LTMID_V2=
 GENSHIN_UID=
 NOTION_TOKEN=
-NOTION_DB_CHARACTERS=
-NOTION_DB_MATERIALS=
-NOTION_DB_NEEDS=
-NOTION_DB_DAILY=
+NOTION_PARENT_PAGE_ID=
+NOTION_DS_CHARACTERS=
+NOTION_DS_MATERIALS=
+NOTION_DS_NEEDS=
+NOTION_DS_DAILY=
 LOCAL_TZ=America/New_York
 SERVER_UTC_OFFSET=8
 RESET_HOUR=4
 SPECIALTY_RESPAWN_HOURS=48
 ```
+
+`NOTION_PARENT_PAGE_ID` is the page the four databases are created under. Connect the integration to it before running `init-notion`. The `NOTION_DS_*` keys hold data source IDs, not database IDs. Under Notion API 2025-09-03 a database is a container, and pages, queries and relations all address its data source. `init-notion` writes each ID as soon as that database exists. If a run stops partway, the next run picks up where it left off instead of creating duplicates.
 
 `.gitignore` includes `.env`, `*.har`, `.cache/`, and any local fixture captures that haven't been scrubbed yet.
 
@@ -332,7 +339,7 @@ The daily page should get written even when parts of a run fail, with a warning 
 | HoYoLAB captcha challenge (genshin.py's `GEETEST_RETCODES`) | Stop that step and say so. This most likely means the run came from a cloud IP. |
 | Map static calls fail | Use the newest cached version. With no cache, farm list items have no map links. |
 | Map data shape changed | Same as above, and the error is logged with the endpoint name. |
-| Notion 429 | Wait for the time Notion's Retry-After header says, then retry. |
+| Notion 429 | notion-client waits for the time Notion's Retry-After header says, then retries. |
 | Notion property missing or renamed | Fail fast and name the property. `init-notion --check` explains how to fix it. |
 
 ## 12. Testing
@@ -340,7 +347,7 @@ The daily page should get written even when parts of a run fail, with a warning 
 - **`clock.py`:** frozen times at 2:59 PM and 3:01 PM Boston, both DST switch dates, Saturday afternoon into Sunday, and Sunday afternoon into Monday.
 - **`classify.py` and `needs.py`:** fixtures built from real responses with personal data removed. `tools/har_summary.py` helps check the structure first.
 - **`daily.py`:** given Materials and a server day, the farm list and page blocks come out as expected.
-- **`notion/`:** tested against a fake client that records calls, which also checks idempotency (a second run makes zero writes).
+- **`notion/`:** tested against `tests/fake_notion.py`, an in-memory client that keeps schemas and pages and records every call. It checks idempotency (a second run makes zero writes) and that no payload ever holds a property you own. It also mimics the API details the docs leave open: Notion's own name for a reverse relation, and a create response without the data source list.
 - **CI** runs tests and lint only. It never touches live APIs.
 
 ## 13. Scheduling
@@ -367,7 +374,7 @@ Windows Task Scheduler triggers on local time, not UTC. A fixed 3:05 PM trigger 
 1. **Embed login.** Does the embedded map show you logged in, in the Notion desktop app and on mobile? If not, exploration comes from the optional API call instead.
 2. **Embed size from the API.** The Notion API probably can't set an embed's height. If it can create pages from the Daily Log template, the embed gets sized once in the template. If not, the script adds the embed at the default size.
 3. **Material counts.** Not found in the first map capture. Find out whether the map exposes them anywhere, and if not, whether a scanner export (GOOD format) is worth adding.
-4. **Respawn hours.** The map's default timer for local specialties is 72 hours. The config default is 48. Check this in the game and pick one.
+4. ~~**Respawn hours.**~~ Resolved: 48. Local specialties respawn 48 hours after you harvest them, not at the daily reset. The map's 72-hour default is the timer for crystal chunk and amethyst nodes. `SPECIALTY_RESPAWN_HOURS` stays at 48, and `init-notion` writes it into the Materials "Back at" formula.
 5. **Route links in English.** The route share links come with `lang=zh-cn`. Confirm that swapping in `lang=en-us` works.
 6. **Cookies for map endpoints.** The capture was sanitized, so we don't yet know which cookies the personal map endpoint needs. Probably the same v2 cookies.
 7. ~~**genshin.py method names** for detailed talents and the calculator.~~ Resolved in M1. See section 4.1.
