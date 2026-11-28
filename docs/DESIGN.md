@@ -94,7 +94,7 @@ What HoYoLAB doesn't give directly:
 
 - **Character ascension.** Only weapon ascension is reported, and the raw data has no hidden field (question 8). The client works out the lowest ascension consistent with the level. At a level cap (20, 40, 50, 60, 70, 80) the character may already have ascended, so the value is flagged as ambiguous. Your "Ascended at cap" checkbox settles it (section 6.1).
 - **Which talent is which.** Talents you can level have `skill_type` 1. Characters with an alternate sprint have four of them, with the sprint third, so the client reads the first as normal, the second as skill and the last as burst.
-- **Base talent levels.** Character detail levels include constellation bonuses (question 8), but targets and the calculator work on base levels. The client takes the bonuses off itself rather than making one calculator request per character. For each unlocked C3 and C5, it finds the talent whose name appears in the constellation's effect text and subtracts 3. When a longer talent name contains a shorter one, only the longer counts as named. A character goes to the calculator instead, one request, in these cases: an unlocked C3 or C5 names no talent or more than one; the constellation data disagrees with the constellation count; a level would drop below 1; or the character doesn't have 3 or 4 levelable talents. The dry run notes each one. Talents are left out of the sync, with a warning, only when the calculator fails too, for example because calculator sync is off. The live test checks the effect-text method against the calculator (question 9).
+- **Base talent levels.** Character detail levels include constellation bonuses (question 8), but targets and the calculator work on base levels. The client takes the bonuses off itself rather than making one calculator request per character. For each unlocked C3 and C5, it finds the talent whose name appears in the constellation's effect text and subtracts 3. When a longer talent name contains a shorter one, only the longer counts as named. A character goes to the calculator instead, one request, in these cases: an unlocked C3 or C5 names no talent or more than one; the constellation data disagrees with the constellation count; a level would drop below 1; or the character doesn't have 3 or 4 levelable talents. The dry run notes each one. Talents are left out of the sync, with a warning, only when the calculator fails too, for example because calculator sync is off. The live run on 28 Nov 2026 matched the calculator for all 22 C3+ characters (question 9).
 
 ### 4.2 Interactive map APIs
 
@@ -135,7 +135,13 @@ Each material the calculator returns gets a type, a source, farm days and a resi
 
 ### 6.1 Databases
 
-`init-notion` creates all four databases under `NOTION_PARENT_PAGE_ID` and writes each data source ID to `.env` as soon as that database exists. It's safe to run again: databases whose ID is set are skipped, and the Materials finishing steps (naming the Needs relation, then the rollup and formulas) only add what's missing. `init-notion --dry-run` prints what it would create. `init-notion --check` confirms every property is still there with the right type, and names any that isn't. sync-roster runs the same check on Characters first, and stops if anything is wrong.
+`init-notion` creates all four databases under `NOTION_PARENT_PAGE_ID` and writes each data source ID to `.env` as soon as that database exists. It's safe to run again: databases whose ID is set are skipped, and the Materials finishing steps (naming the Needs relation, then the rollup and formulas) only add what's missing. `init-notion --dry-run` prints what it would create. `init-notion --check` confirms every property is still there with the right type, and names any that isn't. sync-roster runs the same check on Characters first, and stops if anything is wrong. The first real run on 28 Nov 2026 settled the API details the docs left open:
+
+- Notion kept the reverse relation name given on create (`synced_property_name`). The rename step stays as a fallback.
+- It accepted select properties created with an explicit empty `options` list.
+- It accepted the `max`, `empty`, `if` and `dateAdd` formula functions.
+
+That run created 66 Characters rows, and a second sync-roster made zero writes.
 
 **Characters:** one row per owned character.
 
@@ -382,7 +388,7 @@ Windows Task Scheduler triggers on local time, not UTC. A fixed 3:05 PM trigger 
    - **Ascension: no field.** The raw `base` keys are `actived_constellation_num, element, fetter, icon, id, image, is_chosen, level, name, rarity, side_icon, weapon, weapon_type`. None holds ascension. Characters at a level cap get the "Ascended at cap" checkbox (section 6.1).
    - **Sprint order: confirmed for Mona.** Her four `skill_type` 1 talents come back as normal, skill, Illusory Torrent (the sprint), burst, so reading the burst as the last one is right. Ayaka isn't on the account, so she hasn't been checked. `skill_type` 3 also appears, meaning unknown. The client ignores it.
    - **Constellation bonuses: included.** Collei at C6 shows 1/8/9 in character detail and 1/5/6 in the calculator, so detail levels include the +3s. The roster agrees: Keqing at C3 is 1/1/4, and Xingqiu at C5 is 1/11/11. Notion stores base levels (section 6.1).
-9. **Is the constellation effect text reliable enough to take bonuses off?** Section 4.1 relies on each C3 and C5 effect naming the talent it raises. The M2 live test checks this against the calculator for every C3+ character.
+9. ~~**Is the constellation effect text reliable enough to take bonuses off?**~~ Resolved by the live run on 28 Nov 2026: yes. For all 22 C3+ characters on the account, the effect-text base levels matched the calculator exactly. No character needed the calculator fallback. The matches cover bonuses to all three talents: normal attack (Sethos, Valeriy, Freminet), skill (Bennett, Chevreuse, Collei) and burst (Keqing, Rosaria, Xingqiu). They also include the Traveler. Many of these characters are still at base level 1, so the check proves which talent gets the bonus more than it tests high levels. The calculator fallback stays as the safety net.
 
 ## 16. Build plan
 
