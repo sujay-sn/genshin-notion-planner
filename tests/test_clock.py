@@ -169,3 +169,18 @@ def test_offset_and_reset_hour_come_from_config() -> None:
 
     berlin = Clock(Settings.load({"LOCAL_TZ": "Europe/Berlin"}))
     assert_local(berlin.next_reset_local(now), 2026, 11, 26, 21, 1)
+
+
+def test_now_utc_converts_a_pinned_instant_to_utc(clock: Clock) -> None:
+    server_time = datetime(2026, 11, 29, 4, 5, tzinfo=clock.server_tz)
+    assert clock.now_utc(server_time) == utc(2026, 11, 28, 20, 5)
+    assert clock.now_utc(server_time).tzinfo == UTC
+
+
+def test_now_utc_without_an_argument_is_aware_utc(clock: Clock) -> None:
+    assert clock.now_utc().tzinfo == UTC
+
+
+def test_now_utc_rejects_naive(clock: Clock) -> None:
+    with pytest.raises(ValueError):
+        clock.now_utc(datetime(2026, 11, 28, 20, 5))  # noqa: DTZ001
