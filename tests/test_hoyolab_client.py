@@ -22,6 +22,7 @@ from gplanner.hoyolab.client import (
     HoyolabClient,
     HoyolabError,
     HoyolabUnavailableError,
+    base_talents_from_detail,
 )
 from gplanner.models import Talents
 
@@ -112,15 +113,29 @@ def run(coro: Any) -> Any:
 
 
 # Roster normalization
+#
+# Fixture characters:
+#   90000001  C0, three talents, nothing to take off
+#   90000002  C6, alternate sprint, C3 raises the skill and C5 the burst
+#   90000003  C2, only two levelable talents, so it needs the calculator
+#   90000004  C3 whose effect names none of its talents, so it needs the calculator
+
+CALC_C = calculator_details([ATTACK, SKILL, BURST, *PASSIVES])  # 6/8/10
+CALC_D = calculator_details([(20001, 5131, 2), (20002, 5132, 4), (20003, 5139, 4)])  # 2/4/4
+
+
+def roster_api(*calculator: Any) -> FakeApi:
+    """The fixture detail call, then one calculator result per fallback character."""
+    return FakeApi(detail_characters(), *(calculator or (CALC_C, CALC_D)))
 
 
 def test_fetch_roster_normalizes_characters() -> None:
-    api = FakeApi(detail_characters())
+    api = roster_api()
     result = run(make_client(api).fetch_roster())
 
-    assert api.calls == [("detail", 800000000)]
+    assert api.calls == [("detail", 800000000), ("calculator", 90000003), ("calculator", 90000004)]
     by_id = {c.hoyo_id: c for c in result.characters}
-    assert len(by_id) == 3
+    assert len(by_id) == 4
 
     first = by_id[90000001]
     assert first.name == "Fixture Three Talents"
@@ -132,24 +147,93 @@ def test_fetch_roster_normalizes_characters() -> None:
     assert first.talents == Talents(normal=9, skill=9, burst=9)
     assert first.weapon.name == "Fixture Sword"
     assert (first.weapon.level, first.weapon.ascension, first.weapon.refinement) == (90, 6, 1)
+    assert result.warnings == ()
 
 
-def test_sprint_talent_is_skipped_and_burst_is_last() -> None:
-    result = run(make_client(FakeApi(detail_characters())).fetch_roster())
+def test_constellation_bonuses_are_taken_off_the_named_talents() -> None:
+    result = run(make_client(roster_api()).fetch_roster())
     sprint = next(c for c in result.characters if c.hoyo_id == 90000002)
 
+    # Detail shows 6/8/10 at C6. C3 named the skill and C5 the burst.
     assert sprint.weapon_type == "Catalyst"
-    assert sprint.talents == Talents(normal=6, skill=8, burst=10)
+    assert sprint.talents == Talents(normal=6, skill=5, burst=7)
     assert (sprint.level, sprint.ascension, sprint.ascension_ambiguous) == (80, 5, True)
 
 
-def test_unexpected_talent_count_gives_none_and_a_warning() -> None:
-    result = run(make_client(FakeApi(detail_characters())).fetch_roster())
-    odd = next(c for c in result.characters if c.hoyo_id == 90000003)
+def test_calculator_fills_in_when_detail_cant_settle_base_talents() -> None:
+    result = run(make_client(roster_api()).fetch_roster())
+    by_id = {c.hoyo_id: c for c in result.characters}
 
-    assert odd.talents is None
-    assert odd.weapon_type == "Bow"
-    assert result.warnings == ("Fixture Odd Talents: expected 3 or 4 levelable talents, got 2",)
+    assert by_id[90000003].talents == Talents(normal=6, skill=8, burst=10)
+    assert by_id[90000004].talents == Talents(normal=2, skill=4, burst=4)
+    assert result.notes == (
+        "Fixture Odd Talents: talents from the calculator "
+        "(expected 3 or 4 levelable talents, got 2)",
+        "Fixture Unnamed Bonus: talents from the calculator "
+        "(C3 effect names 0 talents, expected 1)",
+    )
+    assert result.warnings == ()
+
+
+def test_failed_calculator_fallback_warns_and_leaves_talents_out() -> None:
+    sync_off = genshin.errors.GenshinException({"retcode": -502002, "message": "sync off"})
+    result = run(make_client(roster_api(sync_off, CALC_D)).fetch_roster())
+    by_id = {c.hoyo_id: c for c in result.characters}
+
+    assert by_id[90000003].talents is None
+    assert by_id[90000004].talents == Talents(normal=2, skill=4, burst=4)
+    assert len(result.warnings) == 1
+    warning = result.warnings[0]
+    assert warning.startswith("Fixture Odd Talents: expected 3 or 4 levelable talents, got 2")
+    assert "calculator fallback failed" in warning
+    assert "Calculator sync is off" in warning
+
+
+def test_auth_error_in_calculator_fallback_stops_the_roster() -> None:
+    expired = genshin.errors.InvalidCookies({"retcode": -100, "message": "Please login"})
+    with pytest.raises(HoyolabAuthError):
+        run(make_client(roster_api(expired)).fetch_roster())
+
+
+# Base talents from character detail
+
+
+def raw_character(index: int, **changes: Any) -> genshin.models.GenshinDetailCharacter:
+    data = json.loads((FIXTURES / "character_detail.json").read_text(encoding="utf-8"))
+    for key, value in changes.items():
+        data["list"][index][key] = value
+    return genshin.models.GenshinDetailCharacters(**data).characters[index]
+
+
+def test_effect_naming_a_longer_talent_name_picks_the_longer_one() -> None:
+    # Character A's skill "Fixture Ember" is part of the burst "Fixture Ember Storm".
+    data = json.loads((FIXTURES / "character_detail.json").read_text(encoding="utf-8"))
+    constellations = data["list"][0]["constellations"]
+    for c in constellations:
+        c["is_actived"] = c["pos"] <= 5
+    raw = raw_character(0, constellations=constellations)
+    raw = raw.model_copy(update={"constellation": 5})
+
+    talents, reason = base_talents_from_detail(raw)
+    # C3 names "Fixture Ember" (skill), C5 names "Fixture Ember Storm" (burst).
+    assert reason is None
+    assert talents == Talents(normal=9, skill=6, burst=6)
+
+
+def test_constellation_data_that_disagrees_with_the_count_needs_the_calculator() -> None:
+    raw = raw_character(1).model_copy(update={"constellation": 2})
+    talents, reason = base_talents_from_detail(raw)
+    assert talents is None
+    assert reason == "C2 but 2 of C3/C5 shown as unlocked in the constellation data"
+
+
+def test_bonus_that_would_leave_a_level_below_one_needs_the_calculator() -> None:
+    data = json.loads((FIXTURES / "character_detail.json").read_text(encoding="utf-8"))
+    skills = data["list"][1]["skills"]
+    skills[1]["level"] = 2  # C3 would take the skill to -1
+    talents, reason = base_talents_from_detail(raw_character(1, skills=skills))
+    assert talents is None
+    assert reason == "taking off constellation bonuses leaves a level below 1"
 
 
 # Error mapping and retries (DESIGN.md section 11)
@@ -182,11 +266,13 @@ def test_transient_errors_retry_with_backoff_then_succeed() -> None:
         aiohttp.ClientConnectionError("reset"),
         TimeoutError(),
         detail_characters(),
+        CALC_C,
+        CALC_D,
     )
     sleep = RecordingSleep()
     result = run(make_client(api, sleep).fetch_roster())
 
-    assert len(result.characters) == 3
+    assert len(result.characters) == 4
     assert sleep.delays == [1.0, 2.0, 4.0]
 
 

@@ -10,7 +10,8 @@ Methods used, checked against genshin.py 1.7.32 (the pinned version):
 * ``Client.get_genshin_detailed_characters(uid)``: ``character/list`` then
   ``character/detail`` for every owned ID. Two requests for the whole roster.
 * ``Client.get_character_details(id)``: calculator ``sync/avatar/detail``, one
-  request per character. Needs calculator sync turned on in HoYoLAB.
+  request per character. Needs calculator sync turned on in HoYoLAB. Used only
+  for characters whose base talents can't be worked out from character detail.
 
 Calls that would change account settings are avoided on purpose:
 ``get_genshin_notes`` must get ``autoauth=False`` (M4), and
@@ -21,6 +22,7 @@ calculator sync silently.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Any, Protocol, TypeVar
 
@@ -41,6 +43,9 @@ T = TypeVar("T")
 
 # HoYoLAB's skill_type for talents you can level. 2 is passives.
 _ACTIVE_SKILL_TYPE = 1
+# Constellations that raise one talent by 3 levels (DESIGN.md section 4.1).
+_BONUS_CONSTELLATIONS = (3, 5)
+_TALENT_BONUS = 3
 # Calculator retcode when sync is off (genshin.errors maps it to a plain message).
 _CALCULATOR_SYNC_OFF = -502002
 
@@ -175,23 +180,41 @@ class HoyolabClient:
                 ) from None
 
     async def fetch_roster(self) -> RosterResult:
-        """Every owned character with level, constellation, talents and weapon."""
+        """Every owned character with level, constellation, base talents and weapon.
+
+        Base talents come from character detail with constellation bonuses taken
+        off. When that can't be done reliably for a character, their talents
+        come from the calculator instead (one request each).
+        """
         data = await self._call(
             "Character list", lambda: self._api.get_genshin_detailed_characters(self.uid)
         )
         characters: list[CharacterSnapshot] = []
         warnings: list[str] = []
+        notes: list[str] = []
         for raw in data.characters:
-            snapshot, problems = normalize_character(raw)
+            snapshot, reason = normalize_character(raw)
+            if reason is not None:
+                try:
+                    talents = await self.fetch_base_talents(snapshot.hoyo_id)
+                except HoyolabAuthError:
+                    raise
+                except HoyolabError as exc:
+                    warnings.append(
+                        f"{snapshot.name}: {reason}, and the calculator fallback failed "
+                        f"({exc}). Talents left out of this sync."
+                    )
+                else:
+                    snapshot = dataclasses.replace(snapshot, talents=talents)
+                    notes.append(f"{snapshot.name}: talents from the calculator ({reason})")
             characters.append(snapshot)
-            warnings.extend(problems)
-        return RosterResult(tuple(characters), tuple(warnings))
+        return RosterResult(tuple(characters), tuple(warnings), tuple(notes))
 
     async def fetch_base_talents(self, character_id: int) -> Talents:
         """Talent levels from the calculator, which works on base levels.
 
-        Used by the live test to check whether the character detail levels
-        include constellation bonuses. The calculator (M3) will use it too.
+        The fallback for ``fetch_roster`` when character detail can't settle
+        base levels. The live test also uses it to check the bonus removal.
         """
 
         async def request() -> genshin.models.CalculatorCharacterDetails:
@@ -232,22 +255,70 @@ def _talents_from_levels(levels: Sequence[int]) -> Talents | None:
     return Talents(normal=levels[0], skill=levels[1], burst=levels[-1])
 
 
-def _pick_talents(skills: Sequence[Any]) -> Talents | None:
-    """Talents from the character detail skills, where levelable ones have skill_type 1."""
-    return _talents_from_levels([s.level for s in skills if s.skill_type == _ACTIVE_SKILL_TYPE])
+def _most_specific(matched: dict[str, str]) -> list[str]:
+    """Keys of matched talent names, minus any name that's part of a longer match.
+
+    An effect naming "Foo Bar" also contains "Foo", so a talent called "Foo"
+    would otherwise count as named too.
+    """
+    folded = {key: name.casefold() for key, name in matched.items()}
+    return [
+        key
+        for key, name in folded.items()
+        if not any(other != key and name in longer for other, longer in folded.items())
+    ]
+
+
+def base_talents_from_detail(
+    raw: genshin.models.GenshinDetailCharacter,
+) -> tuple[Talents | None, str | None]:
+    """Base talent levels from character detail, or None and the reason it can't tell.
+
+    Character detail levels include constellation bonuses. Each unlocked C3
+    and C5 raises one talent by 3, and its effect text names that talent, so
+    the bonus is taken off the talent it names. If an effect names no talent
+    or several, or the constellation data doesn't match the constellation
+    count, the caller falls back to the calculator.
+    """
+    active = [s for s in raw.skills if s.skill_type == _ACTIVE_SKILL_TYPE]
+    if len(active) not in (3, 4):
+        return None, f"expected 3 or 4 levelable talents, got {len(active)}"
+
+    # With four, the third is the alternate sprint, which no constellation raises.
+    talents = {"normal": active[0], "skill": active[1], "burst": active[-1]}
+    levels = {key: skill.level for key, skill in talents.items()}
+
+    expected = sum(1 for pos in _BONUS_CONSTELLATIONS if raw.constellation >= pos)
+    unlocked = [c for c in raw.constellations if c.pos in _BONUS_CONSTELLATIONS and c.activated]
+    if len(unlocked) != expected:
+        return None, (
+            f"C{raw.constellation} but {len(unlocked)} of C3/C5 shown as unlocked "
+            "in the constellation data"
+        )
+
+    for constellation in unlocked:
+        effect = constellation.effect.casefold()
+        keys = _most_specific(
+            {key: skill.name for key, skill in talents.items() if skill.name.casefold() in effect}
+        )
+        if len(keys) != 1:
+            return None, f"C{constellation.pos} effect names {len(keys)} talents, expected 1"
+        levels[keys[0]] -= _TALENT_BONUS
+
+    if any(level < 1 for level in levels.values()):
+        return None, "taking off constellation bonuses leaves a level below 1"
+    return Talents(normal=levels["normal"], skill=levels["skill"], burst=levels["burst"]), None
 
 
 def normalize_character(
     raw: genshin.models.GenshinDetailCharacter,
-) -> tuple[CharacterSnapshot, list[str]]:
-    """Turn one genshin.py detailed character into a ``CharacterSnapshot``."""
-    problems: list[str] = []
+) -> tuple[CharacterSnapshot, str | None]:
+    """Turn one genshin.py detailed character into a ``CharacterSnapshot``.
 
-    talents = _pick_talents(raw.skills)
-    if talents is None:
-        count = sum(1 for s in raw.skills if s.skill_type == _ACTIVE_SKILL_TYPE)
-        problems.append(f"{raw.name}: expected 3 or 4 levelable talents, got {count}")
-
+    Returns the snapshot and, when base talents couldn't be worked out, the
+    reason. The snapshot's talents are None in that case.
+    """
+    talents, reason = base_talents_from_detail(raw)
     ascension, ambiguous = ascension_for_level(raw.level)
     weapon = raw.weapon
     snapshot = CharacterSnapshot(
@@ -270,4 +341,4 @@ def normalize_character(
             refinement=weapon.refinement,
         ),
     )
-    return snapshot, problems
+    return snapshot, reason

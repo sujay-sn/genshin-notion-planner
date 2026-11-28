@@ -35,7 +35,56 @@
         "sub_property": null
       },
       "relics": [],
-      "constellations": [],
+      "constellations": [
+        {
+          "id": 101,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 1,
+          "name": "Fixture Constellation 1",
+          "effect": "Fixture effect 1.",
+          "is_actived": false
+        },
+        {
+          "id": 102,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 2,
+          "name": "Fixture Constellation 2",
+          "effect": "Fixture effect 2.",
+          "is_actived": false
+        },
+        {
+          "id": 103,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 3,
+          "name": "Fixture Constellation 3",
+          "effect": "Increases the Level of <color=#FFD780FF>Fixture Ember</color> by 3.",
+          "is_actived": false
+        },
+        {
+          "id": 104,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 4,
+          "name": "Fixture Constellation 4",
+          "effect": "Fixture effect 4.",
+          "is_actived": false
+        },
+        {
+          "id": 105,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 5,
+          "name": "Fixture Constellation 5",
+          "effect": "Increases the Level of <color=#FFD780FF>Fixture Ember Storm</color> by 3.",
+          "is_actived": false
+        },
+        {
+          "id": 106,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 6,
+          "name": "Fixture Constellation 6",
+          "effect": "Fixture effect 6.",
+          "is_actived": false
+        }
+      ],
       "costumes": [],
       "selected_properties": [],
       "base_properties": [],
@@ -45,7 +94,7 @@
         {
           "skill_id": 1,
           "skill_type": 1,
-          "name": "Normal Attack",
+          "name": "Fixture Flame Strike",
           "level": 9,
           "desc": "",
           "skill_affix_list": [],
@@ -55,7 +104,7 @@
         {
           "skill_id": 2,
           "skill_type": 1,
-          "name": "Elemental Skill",
+          "name": "Fixture Ember",
           "level": 9,
           "desc": "",
           "skill_affix_list": [],
@@ -65,7 +114,7 @@
         {
           "skill_id": 3,
           "skill_type": 1,
-          "name": "Elemental Burst",
+          "name": "Fixture Ember Storm",
           "level": 9,
           "desc": "",
           "skill_affix_list": [],
@@ -129,7 +178,56 @@
         "sub_property": null
       },
       "relics": [],
-      "constellations": [],
+      "constellations": [
+        {
+          "id": 201,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 1,
+          "name": "Fixture Constellation 1",
+          "effect": "Fixture effect 1.",
+          "is_actived": true
+        },
+        {
+          "id": 202,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 2,
+          "name": "Fixture Constellation 2",
+          "effect": "Fixture effect 2.",
+          "is_actived": true
+        },
+        {
+          "id": 203,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 3,
+          "name": "Fixture Constellation 3",
+          "effect": "Increases the Level of <color=#FFD780FF>Fixture Frost Bloom</color> by 3.\nMaximum upgrade level is 15.",
+          "is_actived": true
+        },
+        {
+          "id": 204,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 4,
+          "name": "Fixture Constellation 4",
+          "effect": "Fixture effect 4.",
+          "is_actived": true
+        },
+        {
+          "id": 205,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 5,
+          "name": "Fixture Constellation 5",
+          "effect": "Increases the Level of <color=#FFD780FF>Fixture Blizzard</color> by 3.\nMaximum upgrade level is 15.",
+          "is_actived": true
+        },
+        {
+          "id": 206,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 6,
+          "name": "Fixture Constellation 6",
+          "effect": "Fixture effect 6.",
+          "is_actived": true
+        }
+      ],
       "costumes": [],
       "selected_properties": [],
       "base_properties": [],
@@ -139,7 +237,7 @@
         {
           "skill_id": 11,
           "skill_type": 1,
-          "name": "Normal Attack",
+          "name": "Fixture Frost Strike",
           "level": 6,
           "desc": "",
           "skill_affix_list": [],
@@ -149,7 +247,7 @@
         {
           "skill_id": 12,
           "skill_type": 1,
-          "name": "Elemental Skill",
+          "name": "Fixture Frost Bloom",
           "level": 8,
           "desc": "",
           "skill_affix_list": [],
@@ -159,7 +257,7 @@
         {
           "skill_id": 13,
           "skill_type": 1,
-          "name": "Alternate Sprint",
+          "name": "Fixture Glide",
           "level": 1,
           "desc": "",
           "skill_affix_list": [],
@@ -169,7 +267,7 @@
         {
           "skill_id": 14,
           "skill_type": 1,
-          "name": "Elemental Burst",
+          "name": "Fixture Blizzard",
           "level": 10,
           "desc": "",
           "skill_affix_list": [],
@@ -223,7 +321,56 @@
         "sub_property": null
       },
       "relics": [],
-      "constellations": [],
+      "constellations": [
+        {
+          "id": 301,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 1,
+          "name": "Fixture Constellation 1",
+          "effect": "Fixture effect 1.",
+          "is_actived": true
+        },
+        {
+          "id": 302,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 2,
+          "name": "Fixture Constellation 2",
+          "effect": "Fixture effect 2.",
+          "is_actived": true
+        },
+        {
+          "id": 303,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 3,
+          "name": "Fixture Constellation 3",
+          "effect": "Increases the Level of Normal Attack by 3.",
+          "is_actived": false
+        },
+        {
+          "id": 304,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 4,
+          "name": "Fixture Constellation 4",
+          "effect": "Fixture effect 4.",
+          "is_actived": false
+        },
+        {
+          "id": 305,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 5,
+          "name": "Fixture Constellation 5",
+          "effect": "Increases the Level of Elemental Skill by 3.",
+          "is_actived": false
+        },
+        {
+          "id": 306,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 6,
+          "name": "Fixture Constellation 6",
+          "effect": "Fixture effect 6.",
+          "is_actived": false
+        }
+      ],
       "costumes": [],
       "selected_properties": [],
       "base_properties": [],
@@ -244,6 +391,139 @@
           "skill_id": 22,
           "skill_type": 1,
           "name": "Elemental Skill",
+          "level": 1,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        }
+      ]
+    },
+    {
+      "base": {
+        "id": 90000004,
+        "icon": "https://example.invalid/avatar.png",
+        "name": "Fixture Unnamed Bonus",
+        "element": "Geo",
+        "fetter": 10,
+        "level": 60,
+        "rarity": 5,
+        "actived_constellation_num": 3,
+        "image": "https://example.invalid/image.png",
+        "is_chosen": false,
+        "side_icon": "https://example.invalid/side.png",
+        "weapon_type": 11,
+        "weapon": {}
+      },
+      "weapon": {
+        "id": 91000004,
+        "icon": "https://example.invalid/weapon.png",
+        "name": "Fixture Claymore",
+        "rarity": 5,
+        "level": 60,
+        "type": 1,
+        "affix_level": 1,
+        "promote_level": 3,
+        "desc": "",
+        "main_property": {
+          "property_type": 2001,
+          "base": "608",
+          "add": "",
+          "final": "608"
+        },
+        "sub_property": null
+      },
+      "relics": [],
+      "constellations": [
+        {
+          "id": 401,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 1,
+          "name": "Fixture Constellation 1",
+          "effect": "Fixture effect 1.",
+          "is_actived": true
+        },
+        {
+          "id": 402,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 2,
+          "name": "Fixture Constellation 2",
+          "effect": "Fixture effect 2.",
+          "is_actived": true
+        },
+        {
+          "id": 403,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 3,
+          "name": "Fixture Constellation 3",
+          "effect": "Increases the Level of Something Else by 3.",
+          "is_actived": true
+        },
+        {
+          "id": 404,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 4,
+          "name": "Fixture Constellation 4",
+          "effect": "Fixture effect 4.",
+          "is_actived": false
+        },
+        {
+          "id": 405,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 5,
+          "name": "Fixture Constellation 5",
+          "effect": "Increases the Level of Fixture Quake by 3.",
+          "is_actived": false
+        },
+        {
+          "id": 406,
+          "icon": "https://example.invalid/cons.png",
+          "pos": 6,
+          "name": "Fixture Constellation 6",
+          "effect": "Fixture effect 6.",
+          "is_actived": false
+        }
+      ],
+      "costumes": [],
+      "selected_properties": [],
+      "base_properties": [],
+      "extra_properties": [],
+      "element_properties": [],
+      "skills": [
+        {
+          "skill_id": 31,
+          "skill_type": 1,
+          "name": "Fixture Stone Strike",
+          "level": 2,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 32,
+          "skill_type": 1,
+          "name": "Fixture Pillar",
+          "level": 7,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 33,
+          "skill_type": 1,
+          "name": "Fixture Quake",
+          "level": 4,
+          "desc": "",
+          "skill_affix_list": [],
+          "icon": "https://example.invalid/skill.png",
+          "is_unlock": true
+        },
+        {
+          "skill_id": 34,
+          "skill_type": 2,
+          "name": "Passive One",
           "level": 1,
           "desc": "",
           "skill_affix_list": [],

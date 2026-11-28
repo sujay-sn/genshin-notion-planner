@@ -37,10 +37,15 @@ class WeaponSnapshot:
     ascension: int
     refinement: int
 
+    @property
+    def label(self) -> str:
+        """How the weapon reads in the roster table and Notion, e.g. "Amos' Bow Lv90 R1"."""
+        return f"{self.name} Lv{self.level} R{self.refinement}"
+
 
 @dataclass(frozen=True)
 class Talents:
-    """Talent levels as HoYoLAB's character detail reports them."""
+    """Base talent levels, without constellation bonuses (DESIGN.md section 6.1)."""
 
     normal: int
     skill: int
@@ -70,3 +75,4 @@ class RosterResult:
 
     characters: tuple[CharacterSnapshot, ...]
     warnings: tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
