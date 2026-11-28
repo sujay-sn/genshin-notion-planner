@@ -248,7 +248,9 @@ Two consequences to keep in mind. After 3 PM Boston time, the server is already 
 
 ## 8. Flows
 
-All commands share one rule: read first, compute in `planner/`, then write. A crash partway through leaves Notion the way it was or fully updated, never half-written.
+All commands share one rule: read first, work out every change, then write. Game logic is computed in `planner/`, and the diff against Notion in `notion/`. Nothing is written until the whole plan is known, so a failure while reading or computing leaves Notion untouched.
+
+Writes go one row at a time, so they aren't atomic. If a run fails partway through writing (a network error, a Notion error, a crash), some rows are updated and the rest aren't. That's safe to leave. The next run reads Notion again, works out the diff from what is actually there, and writes only what's still missing, which finishes the job. This works because every command is idempotent and compares against current state, not against what the previous run meant to do. `init-notion` resumes the same way, since it saves each data source ID as soon as that database exists.
 
 **`refresh-map`** (inside every `run`): fetch `map/info`. If `map_version` changed, fetch the label tree, `game_item` and area labels into a new cache folder. Otherwise keep the existing cache.
 
