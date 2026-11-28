@@ -12,6 +12,8 @@ dependencies = [
     # Exact pin: genshin.py tracks unofficial APIs and releases monthly. Bump it on
     # purpose and re-check the methods hoyolab/client.py uses.
     "genshin==1.7.32",
+    # Speaks Notion API 2025-09-03 (data sources) and retries 429s itself.
+    "notion-client==3.1.0",
     "python-dotenv>=1.0",
     # Windows has no system time zone database, so zoneinfo needs this.
     "tzdata>=2024.1",

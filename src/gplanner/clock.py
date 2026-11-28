@@ -33,6 +33,10 @@ class Clock:
         _require_aware(now, "now")
         return now
 
+    def now_utc(self, now: datetime | None = None) -> datetime:
+        """The current instant (or ``now``) in UTC, for timestamps like Last synced."""
+        return self._now(now).astimezone(UTC)
+
     def server_day(self, now: datetime | None = None) -> date:
         """The game day: the date of (server time minus the reset hour)."""
         server_now = self._now(now).astimezone(self.server_tz)

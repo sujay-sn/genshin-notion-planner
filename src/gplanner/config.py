@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from dotenv import dotenv_values
+from dotenv import dotenv_values, set_key
 
 
 class ConfigError(ValueError):
@@ -35,11 +35,14 @@ class Settings:
     genshin_uid: str | None = field(default=None, repr=False)
     notion_token: str | None = field(default=None, repr=False)
 
-    # Notion database IDs (written by init-notion)
-    notion_db_characters: str | None = None
-    notion_db_materials: str | None = None
-    notion_db_needs: str | None = None
-    notion_db_daily: str | None = None
+    # Notion page the databases live under, and the data source IDs that
+    # init-notion writes. Under Notion API 2025-09-03 pages, queries and
+    # relations all address a database's data source, not the database.
+    notion_parent_page_id: str | None = None
+    notion_ds_characters: str | None = None
+    notion_ds_materials: str | None = None
+    notion_ds_needs: str | None = None
+    notion_ds_daily: str | None = None
 
     def __post_init__(self) -> None:
         try:
@@ -96,8 +99,21 @@ class Settings:
             hoyolab_ltmid_v2=text("HOYOLAB_LTMID_V2"),
             genshin_uid=text("GENSHIN_UID"),
             notion_token=text("NOTION_TOKEN"),
-            notion_db_characters=text("NOTION_DB_CHARACTERS"),
-            notion_db_materials=text("NOTION_DB_MATERIALS"),
-            notion_db_needs=text("NOTION_DB_NEEDS"),
-            notion_db_daily=text("NOTION_DB_DAILY"),
+            notion_parent_page_id=text("NOTION_PARENT_PAGE_ID"),
+            notion_ds_characters=text("NOTION_DS_CHARACTERS"),
+            notion_ds_materials=text("NOTION_DS_MATERIALS"),
+            notion_ds_needs=text("NOTION_DS_NEEDS"),
+            notion_ds_daily=text("NOTION_DS_DAILY"),
         )
+
+
+def save_env_values(values: Mapping[str, str], path: Path | None = None) -> None:
+    """Set keys in ``.env``, keeping every other line as it is.
+
+    init-notion uses this to record data source IDs. Values are written
+    unquoted, matching ``.env.example``.
+    """
+    env_path = path or Path.cwd() / ".env"
+    env_path.touch(exist_ok=True)
+    for key, value in values.items():
+        set_key(env_path, key, value, quote_mode="never")
